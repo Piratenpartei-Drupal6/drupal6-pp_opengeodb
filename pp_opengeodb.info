@@ -1,0 +1,7 @@
+; $Id$
+package = Piratenpartei
+name = Piratenpartei Open GeoDB
+description = Bietet ortsbezogenen Funktionen.
+dependencies[] = pp_admin_menu
+core = 6.x
+version = "6.x-1.1"

@@ -1,0 +1,243 @@
+<?php
+
+
+/**
+ * Implementation of hook_meu()
+ */
+function pp_opengeodb_menu() {
+  $items = array();
+
+  $items['admin/settings/piraten/opengeodb'] = array(
+    'title' => 'OpenGeoDB',
+    'description' => 'Einstellungen',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pp_opengeodb_admin_settings_form'),
+    'access arguments' => array('administer pp_opengeodb'),
+    'file' => 'pp_opengeodb_settings.admin.inc'
+  );
+
+  $items['ajax/membership/get/citiesbyzipcode'] = array(
+    /* Anybody should be able to access this URL: */
+    'access arguments' => array('access content'),
+    /* Which function should respond to this path: */
+    'page callback' => 'pp_opengeodb_ajax_getCitiesByZipcode',
+    /*
+      This is a utility URL used by our site,
+      and should not be displayed anywhere in the menu system:
+    */
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['ajax/membership/get/zipcodebycity'] = array(
+    /* Anybody should be able to access this URL: */
+    'access arguments' => array('access content'),
+    /* Which function should respond to this path: */
+    'page callback' => 'pp_opengeodb_ajax_getZipcodeByCity',
+    /*
+      This is a utility URL used by our site,
+      and should not be displayed anywhere in the menu system:
+    */
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+
+/**
+* Display help and module information.
+* @param path
+*   Which path of the site we're displaying help.
+* @param arg
+*   Array that holds the current path as would be returned from arg() function.
+* @return
+*   help text for the path.
+*/
+function pp_opengeodb_help($path, $arg) {
+  $output = '';
+  switch ($path) {
+    case "admin/help#pp_opengeodb":
+      $output = '<p>'. t("Bietet ortsbezogenen Funktionen").'</p>';
+      break;
+  }
+  return $output;
+} // function pp_opengeodb_help
+
+
+/**
+ * Implementation of hook_init().
+ *
+ * These includes do not need to be loaded for cached pages.
+ */
+function pp_opengeodb_init() {
+  // Add necessary CSS and JS.
+  // TODO: These shouldn't be loaded on every page, but block caching omits
+  // CSS and JS files that would be otherwise added.
+  #drupal_add_css(drupal_get_path('module', 'pp_opengeodb') .'/pp_opengeodb.css');
+  #drupal_add_js(drupal_get_path('module', 'pp_opengeodb') .'/pp_opengeodb.js');
+
+  // prevent caching
+  #$GLOBALS['conf']['cache'] = FALSE;
+}
+
+
+/**
+* Valid permissions for this module
+* @return array An array of valid permissions for the pp_opengeodb module
+*/
+
+function pp_opengeodb_perm() {
+  return array('administer pp_opengeodb');
+} // function pp_opengeodb_perm()
+
+
+function pp_opengeodb_api_getStates() {
+	// load
+		$sql = "SELECT DISTINCT(`bundesland`) AS `value` FROM {pp_opengeodb} ORDER BY `bundesland` ASC";
+		$result = db_query($sql);
+
+	// ret
+		$ret = array();
+		$ret[""] = "Keines";
+		while (($record = db_fetch_array($result)) !== FALSE) {
+			$ret[$record["value"]] = $record["value"];
+		}
+
+	// return
+		return $ret;
+}
+
+function pp_opengeodb_api_getCountiesByState($state) {
+	// load
+		$sql = "SELECT DISTINCT (`landkreis`) AS `value` FROM {pp_opengeodb} WHERE `bundesland` = '%s' ORDER BY `landkreis` ASC";
+		$result = db_query($sql, $state);
+
+	// ret
+		$ret = array();
+		while (($record = db_fetch_array($result)) !== FALSE) {
+			$ret[strtolower($record["value"])] = $record["value"];
+		}
+
+	// return
+		return $ret;
+}
+
+
+function pp_opengeodb_api_getCitiesByZipcode($zipcode) {
+	// load
+		$sql = "SELECT `ort` FROM {pp_opengeodb} WHERE `plz` LIKE '%s%' ORDER BY `ort` ASC";
+		$result = db_query($sql, $zipcode);
+
+	// ret
+		$ret = array();
+		while (($record = db_fetch_array($result)) !== FALSE) {
+			$ret[$record["ort"]] = $record["ort"];
+		}
+
+	// return
+		return $ret;
+}
+
+function pp_opengeodb_api_getCitiesByZipcodeOptions($zipcode) {
+	// cities
+		$cities = pp_opengeodb_api_getCitiesByZipcode($zipcode);
+
+	// ret
+		$ret = array();
+		switch (sizeof($cities)) {
+			case 0:
+				$ret[""] = t("Es konnte kein Ort gefunden werden");
+				break;
+			case 1:
+				$ret = $cities;
+				break;
+			default:
+				$ret[""] = t("Bitte einen Ort auswählen");
+				$ret = array_merge($ret, $cities);
+				break;
+		}
+
+	// return
+		return $ret;
+}
+
+function pp_opengeodb_ajax_getCitiesByZipcode() {
+	// cities
+		$ret = pp_opengeodb_api_getCitiesByZipcodeOptions($_POST["zipcode"]);
+
+	// session
+		if (!isset($_SESSION["pp_opengeodb"]))
+			$_SESSION["pp_opengeodb"] = array();
+		$_SESSION["pp_opengeodb"]["getCitiesByZipcode"] = $ret;
+
+	// return
+		drupal_json($ret);
+}
+
+function pp_opengeodb_check_getCitiesByZipcode($city) {
+	$ret = false;
+	if (isset($_SESSION["pp_opengeodb"])) {
+		if (isset($_SESSION["pp_opengeodb"]["getCitiesByZipcode"])) {
+			$ret = in_array($city, array_keys($_SESSION["pp_opengeodb"]["getCitiesByZipcode"]));
+		}
+	}
+	return $ret;
+}
+
+
+function pp_opengeodb_api_getZipcodeByCity($city) {
+	// load
+		$sql = "SELECT `plz` FROM {pp_opengeodb} WHERE `ort` = '%s'";
+		$result = db_query($sql, $city);
+
+	// ret
+		$record = db_fetch_array($result);
+		$ret = $record["plz"];
+
+	// return
+		return $ret;
+}
+
+function pp_opengeodb_ajax_getZipcodeByCity() {
+	// plz
+		$plz = pp_opengeodb_api_getZipcodeByCity($_POST["city"]);
+
+	// ret
+		$ret = false;
+		if ($plz) {
+			if ($plz != $_POST["zipcode"]) {
+				$ret = $plz;
+			}
+		}
+
+	// return
+		drupal_json($ret);
+}
+
+function pp_opengeodb_api_getEntryByZipcodeAndCity($zipcode, $city) {
+	// load
+		$sql = "SELECT * FROM {pp_opengeodb} WHERE `plz` = '%s' AND `ort` = '%s'";
+		$result = db_query($sql, $zipcode, $city);
+
+	// ret
+		$ret = db_fetch_array($result);
+
+	// district
+		switch($ret["bundesland"]) {
+			case "Hessen":
+				module_load_include('inc', 'pp_opengeodb', 'district/hessen');
+				$ret["bezirk"] = getDistrict($ret["landkreis"]);
+				break;
+		}
+
+	// return
+		return $ret;
+}
+
+function pp_opengeodb_api_getStateShortcut($state) {
+	// load
+		module_load_include('inc', 'pp_opengeodb', 'shortcuts/states');
+		return getShortcut($state);
+}
+
+?>

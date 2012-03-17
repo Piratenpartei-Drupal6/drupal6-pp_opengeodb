@@ -1,0 +1,69 @@
+<?php
+
+/**
+ * Implementation of hook_schema().
+ */
+function pp_opengeodb_schema() {
+  $schema['pp_opengeodb'] = array(
+    'description' => t('Stores zipcode, towns, counties and provinces.'),
+    'fields' => array(
+      'id' => array(
+        'description' => t('Unique identifier for each {pp_opengeodb} data record.'),
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'plz' => array(
+        'description' => t('The towns zipcode.'),
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'ort' => array(
+        'description' => t('The name of the town.'),
+        'type' => 'varchar',
+        'length' => '100',
+        'not null' => TRUE,
+      ),
+      'landkreis' => array(
+        'description' => t('The county of the town.'),
+        'type' => 'varchar',
+        'length' => '100',
+        'not null' => TRUE,
+      ),
+      'bundesland' => array(
+        'description' => t('The province of the town.'),
+        'type' => 'varchar',
+        'length' => '25',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'unique' => array('plz', 'ort', 'landkreis', 'bundesland')
+    ),
+    'indexes' => array(
+      'bundesland' => array('bundesland'),
+      'landkreis' => array('landkreis'),
+      'ort' => array('ort'),
+      'plz' => array('plz'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function pp_opengeodb_install() {
+  // Create tables.
+  drupal_install_schema('pp_opengeodb');
+
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function pp_opengeodb_uninstall() {
+  // Remove tables.
+  drupal_uninstall_schema('pp_opengeodb');
+}
