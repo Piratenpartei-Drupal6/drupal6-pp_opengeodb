@@ -13,4 +13,4 @@ Enthält
 Abhängigkeiten
 --------------
 
-- pp_admin_menu https://github.com/Piratenpartei/drupal6-admin-menu
+- pp_admin_menu https://github.com/Piratenpartei/drupal6-pp_admin_menu
