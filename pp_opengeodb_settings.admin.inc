@@ -45,7 +45,7 @@ function pp_opengeodb_admin_settings_form() {
 		$form['upload'] = array(
 			'#type' => 'fieldset',
 			'#title' => t('Datei-Upload'),
-			'#description' => t("Es wird eine Excel-Datei von folgender <a href='http://www.manfrin-it.com/postleitzahlen/plz.html'>Website</a> erwartet."),
+			'#description' => t("Es wird eine Excel-Datei von folgender <a href='http://www.manfrin-it.com/postleitzahlen/plz.html'>Website</a> erwartet oder eine durch das <a href='https://github.com/Piratenpartei/drupal6-pp_opengeodb/tree/master/generator'>Generator-Skript</a> erzeugte."),
 		);
 
 		$form['upload']['file'] = array(
